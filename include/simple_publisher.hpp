@@ -11,24 +11,39 @@
  * messages with configurable frequency and provides a service to modify the
  * message
  */
-
 #ifndef BEGINNER_TUTORIALS_SIMPLE_PUBLISHER_HPP_
 #define BEGINNER_TUTORIALS_SIMPLE_PUBLISHER_HPP_
 
-#include <example_interfaces/srv/set_bool.hpp>
+#include "example_interfaces/srv/set_bool.hpp"
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <string>
 
 class SimplePublisher : public rclcpp::Node {
-public:
-    SimplePublisher();
+ public:
+    // Constructor with NodeOptions
+    explicit SimplePublisher(const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
-private:
+ private:
+    // Callback Methods
     void timer_callback();
+    void change_string_callback(
+        const std::shared_ptr<example_interfaces::srv::SetBool::Request> request,
+        const std::shared_ptr<example_interfaces::srv::SetBool::Response> response);
+    void update_timer_period();
+    rcl_interfaces::msg::SetParametersResult parameters_callback(
+        const std::vector<rclcpp::Parameter>& parameters);
+
+    // Member variables
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
-    size_t count_;
+    rclcpp::Service<example_interfaces::srv::SetBool>::SharedPtr service_;
+    rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_callback_handle_;
+    
+    std::string base_message_{"Hello"};
+    double publish_frequency_{2.0};  // Hz
+    size_t count_{0};
 };
 
 #endif  // BEGINNER_TUTORIALS_SIMPLE_PUBLISHER_HPP_
