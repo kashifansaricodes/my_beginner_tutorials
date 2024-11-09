@@ -11,9 +11,13 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+git push --set-upstream origin ros_services_logging_launch
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
+
+# Include directories
+include_directories(include)
 
 
 add_executable(talker src/publisher_member_function.cpp)
@@ -26,6 +30,26 @@ install(TARGETS
   talker
   listener
   DESTINATION lib/${PROJECT_NAME})
+  
+  # Install include directories
+install(DIRECTORY 
+  include/
+  DESTINATION include/${PROJECT_NAME}/
+)
+
+# Install launch files
+install(DIRECTORY
+  launch/
+  DESTINATION share/${PROJECT_NAME}/launch
+)
+
+# Export dependencies
+ament_export_include_directories(include)
+ament_export_dependencies(
+  rclcpp
+  std_msgs
+  example_interfaces
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
