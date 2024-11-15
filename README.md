@@ -21,19 +21,23 @@ colcon_build
 source . install/setup.bash
 ```
 
-### Running the publisher and subscriber node
+### Running the launch file
 
 ```bash
 cd ros2_ws/
 source . install/setup.bash
-ros2 run beginner_tutorials talker
+ros2 launch beginner_tutorials tutorial_launch.py
 ```
-In another terminal
+### To change the string use
 
 ```bash
-cd ros2_ws/
-source . install/setup.bash
-ros2 run beginner_tutorials listener
+ros2 service call /change_string example_interfaces/srv/SetBool "data: true"
+```
+
+### To change the frequency use
+
+```bash
+ros2 param set /talker publish_frequency 5.0"
 ```
 
 
