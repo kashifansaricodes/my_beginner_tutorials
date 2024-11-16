@@ -39,11 +39,39 @@ ros2 service call /change_string example_interfaces/srv/SetBool "data: true"
 ```bash
 ros2 param set /talker publish_frequency 5.0"
 ```
+
+### Coomands for TF frames
+To check the actual transform values between frames:
+```bash
+ros2 run tf2_ros tf2_echo world talk
+```
+To visualize the TF tree (pdf)
+```bash
+ros2 run tf2_tools view_frames
+```
+
 ### To run the catch2 test (with additional log details)
 
 ```bash
 colcon test --packages-select beginner_tutorials --event-handlers console_direct+
 ```
 
+### To record and play the ros bag
+
+To record:
+```bash
+ros2 launch beginner_tutorials bag_record_launch.py record_bag:=true
+```
+
+To play:
+```bash
+ros2 bag play src/beginner_tutorials/results/rosbag2_2024_11_15_22_14_00
+```
+
+### To run the listener node
+
+```bash
+ros2 run beginner_tutorials listener
+```
 
 
