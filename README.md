@@ -39,7 +39,11 @@ ros2 service call /change_string example_interfaces/srv/SetBool "data: true"
 ```bash
 ros2 param set /talker publish_frequency 5.0"
 ```
+### To run the catch2 test (with additional log details)
 
+```bash
+colcon test --packages-select beginner_tutorials --event-handlers console_direct+
+```
 
 
 
