@@ -14,6 +14,8 @@ find_package(example_interfaces REQUIRED)
 find_package(tf2 REQUIRED)           
 find_package(tf2_ros REQUIRED)       
 find_package(geometry_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
+find_package(catch_ros2 REQUIRED)
 
 # Include directories
 include_directories(include)
@@ -71,9 +73,41 @@ ament_export_dependencies(
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
-  set(ament_cmake_copyright_FOUND TRUE)
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
+  find_package(ament_cmake_gtest REQUIRED)
+  
+  # Add the test executable
+  add_executable(test_publisher
+    test/test_publisher.cpp
+  )
+  
+  # Update include directories to find all headers
+  target_include_directories(test_publisher PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+    ${catch_ros2_INCLUDE_DIRS}
+    ${rclcpp_INCLUDE_DIRS}
+    ${std_msgs_INCLUDE_DIRS}
+    ${std_srvs_INCLUDE_DIRS}
+  )
+  
+  ament_target_dependencies(test_publisher
+    rclcpp
+    std_msgs
+    std_srvs
+    catch_ros2
+  )
+
+  # Install the test executable
+  install(TARGETS
+    test_publisher
+    DESTINATION lib/${PROJECT_NAME}
+  )
+
+  # Register the test
+  add_test(
+    NAME test_publisher_test
+    COMMAND test_publisher
+  )
 endif()
 
 ament_package()
