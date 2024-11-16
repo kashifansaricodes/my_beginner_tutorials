@@ -23,8 +23,8 @@ SimplePublisher::SimplePublisher(const rclcpp::NodeOptions& options)
   // Initialize the static transform broadcaster
   tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
   
-  // Set up and broadcast the static transform
-  broadcast_static_transform();
+  // Create the publisher for the chatter topic
+  publisher_ = this->create_publisher<std_msgs::msg::String>("/chatter", 10);
 
   // Create a parameter descriptor for frequency
   rcl_interfaces::msg::ParameterDescriptor freq_desc{};
@@ -39,19 +39,21 @@ SimplePublisher::SimplePublisher(const rclcpp::NodeOptions& options)
   this->declare_parameter("publish_frequency", 2.0, freq_desc);
   publish_frequency_ = this->get_parameter("publish_frequency").as_double();
 
+  // Initialize the timer first
+  timer_ = this->create_wall_timer(
+      std::chrono::duration<double>(1.0 / publish_frequency_),
+      std::bind(&SimplePublisher::timer_callback, this));
+
+  // Set up and broadcast the static transform
+  broadcast_static_transform();
+
   // Log the initial frequency value
   RCLCPP_INFO_STREAM(this->get_logger(),
                      "Starting pub: " << publish_frequency_ << " Hz");
 
-  // Create the publisher for the chatter topic
-  publisher_ = this->create_publisher<std_msgs::msg::String>("/chatter", 10);
-
   // Set up callback for parameter changes
   param_callback_handle_ = this->add_on_set_parameters_callback(
       std::bind(&SimplePublisher::parameters_callback, this, _1));
-
-  // Initialize the timer with the specified frequency
-  update_timer_period();
 
   // Create service for changing the base string
   service_ = create_service<example_interfaces::srv::SetBool>(
@@ -64,34 +66,48 @@ SimplePublisher::SimplePublisher(const rclcpp::NodeOptions& options)
 }
 
 void SimplePublisher::broadcast_static_transform() {
-  geometry_msgs::msg::TransformStamped t;
+    geometry_msgs::msg::TransformStamped t;
 
-  // Set header
-  t.header.stamp = this->get_clock()->now();
-  t.header.frame_id = "world";  // parent frame
-  t.child_frame_id = "talk";    // child frame
+    // Set header with current time
+    t.header.stamp = this->get_clock()->now();
+    t.header.frame_id = "world";
+    t.child_frame_id = "talk";
 
-  // Set translation (non-zero values)
-  t.transform.translation.x = 1.0;  // 1 meter in x
-  t.transform.translation.y = 0.5;  // 0.5 meters in y
-  t.transform.translation.z = 0.3;  // 0.3 meters in z
+    // Set translation (explicitly showing non-zero values)
+    t.transform.translation.x = 1.0;  // 1 meter in x
+    t.transform.translation.y = 0.5;  // 0.5 meters in y
+    t.transform.translation.z = 0.3;  // 0.3 meters in z
 
-  // Set rotation (45 degrees around Z-axis)
-  tf2::Quaternion q;
-  q.setRPY(0.1,  // roll (rotation around X)
-           0.2,  // pitch (rotation around Y)
-           0.785);  // yaw (rotation around Z) - 45 degrees in radians
+    // Create and set rotation (45 degrees around Z-axis plus some X and Y rotation)
+    tf2::Quaternion q;
+    q.setRPY(0.1,    // Roll (X) - about 5.7 degrees
+             0.2,    // Pitch (Y) - about 11.5 degrees
+             0.785); // Yaw (Z) - 45 degrees
+    
+    // Normalize the quaternion
+    q.normalize();
 
-  // Convert quaternion to transform
-  t.transform.rotation.x = q.x();
-  t.transform.rotation.y = q.y();
-  t.transform.rotation.z = q.z();
-  t.transform.rotation.w = q.w();
+    // Set the rotation in the transform
+    t.transform.rotation.x = q.x();
+    t.transform.rotation.y = q.y();
+    t.transform.rotation.z = q.z();
+    t.transform.rotation.w = q.w();
 
-  // Send the transform
-  tf_static_broadcaster_->sendTransform(t);
-  
-  RCLCPP_INFO(this->get_logger(), "Published static transform from 'world' to 'talk'");
+    // Send the transform
+    tf_static_broadcaster_->sendTransform(t);
+    
+    // Log the exact values being published
+    RCLCPP_INFO(this->get_logger(), 
+        "Published static transform from 'world' to 'talk':\n"
+        "Translation: [%.2f, %.2f, %.2f]\n"
+        "Rotation (quaternion): [%.2f, %.2f, %.2f, %.2f]",
+        t.transform.translation.x,
+        t.transform.translation.y,
+        t.transform.translation.z,
+        t.transform.rotation.x,
+        t.transform.rotation.y,
+        t.transform.rotation.z,
+        t.transform.rotation.w);
 }
 
 rcl_interfaces::msg::SetParametersResult SimplePublisher::parameters_callback(
