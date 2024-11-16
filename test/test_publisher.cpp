@@ -1,3 +1,13 @@
+/**
+ * @file test_publisher.cpp
+ * @author Kashif Ansari
+ * @brief Integration tests for the publisher node
+ * @version 0.1
+ * @date 2024-02-08
+ * 
+ * @copyright Copyright (c) 2024
+ */
+
 #include <catch_ros2/catch_ros2.hpp>
 #include <chrono>
 #include <rclcpp/executors.hpp>
@@ -16,8 +26,16 @@ using std_msgs::msg::String;
 
 auto logger = rclcpp::get_logger("");
 
+/**
+ * @brief Test fixture class for publisher integration tests
+ * @details Sets up a test environment with a publisher node and necessary ROS2 infrastructure
+ */
 class MyTestsFixture {
  public:
+  /**
+   * @brief Construct a new test fixture
+   * @details Initializes ROS2, creates test and publisher nodes, and sets up parameters
+   */
   MyTestsFixture() {
     // Initialize ROS 2
     rclcpp::init(0, nullptr);
@@ -44,22 +62,30 @@ class MyTestsFixture {
     RCLCPP_INFO_STREAM(logger, "Got test_duration =" << test_duration_);
   }
 
+  /**
+   * @brief Destroy the test fixture
+   * @details Performs ROS2 shutdown and cleanup
+   */
   ~MyTestsFixture() {
     rclcpp::shutdown();
   }
 
  protected:
-  double test_duration_;
-  rclcpp::Node::SharedPtr tester_node_;
-  rclcpp::Node::SharedPtr talker_node_;
-  rclcpp::Publisher<String>::SharedPtr publisher_;
-  rclcpp::TimerBase::SharedPtr timer_;
+  double test_duration_;                                  ///< Duration for test execution
+  rclcpp::Node::SharedPtr tester_node_;                  ///< Test node instance
+  rclcpp::Node::SharedPtr talker_node_;                  ///< Publisher node instance
+  rclcpp::Publisher<String>::SharedPtr publisher_;       ///< Message publisher
+  rclcpp::TimerBase::SharedPtr timer_;                   ///< Timer for publishing messages
 };
 
 ////////////////////////////////////////////////
 // Test Cases
 ////////////////////////////////////////////////
 
+/**
+ * @brief Test case for verifying publisher functionality
+ * @details Tests if the publisher successfully publishes messages that can be received
+ */
 TEST_CASE_METHOD(MyTestsFixture, "test talker", "[topic]") {
   bool got_topic = false;
 

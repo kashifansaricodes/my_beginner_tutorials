@@ -1,2 +1,2 @@
-kashif@kashifpc:~/SDR/week9/ros_ass2$ clang-tidy -p compile_commands.json --extra-arg=-std=c++17 src/beginner_tutorials/src/simple_publisher.cpp src/beginner_tutorials/src/simple_subscriber.cpp 
+kashif@kashifpc:~/SDR/week9/ros_ass2$ clang-tidy -p compile_commands.json --extra-arg=-std=c++17 src/beginner_tutorials/src/simple_publisher.cpp src/beginner_tutorials/src/simple_subscriber.cpp src/beginner_tutorials/src/main.cpp
 kashif@kashifpc:~/SDR/week9/ros_ass2$

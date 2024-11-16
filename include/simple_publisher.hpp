@@ -25,34 +25,53 @@
 
 class SimplePublisher : public rclcpp::Node {
  public:
-    // Constructor with NodeOptions
+    /**
+     * @brief Construct a new Simple Publisher object
+     * @param options Node options for configuration
+     */
     explicit SimplePublisher(const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
  private:
-    // Callback Methods
+    /**
+     * @brief Timer callback for periodic message publishing
+     */
     void timer_callback();
+
+    /**
+     * @brief Service callback to change the base message string
+     * @param request Service request containing boolean flag
+     * @param response Service response with success status
+     */
     void change_string_callback(
         const std::shared_ptr<example_interfaces::srv::SetBool::Request> request,
         const std::shared_ptr<example_interfaces::srv::SetBool::Response> response);
+
+    /**
+     * @brief Updates the timer period based on frequency parameter
+     */
     void update_timer_period();
+
+    /**
+     * @brief Callback for parameter changes
+     * @param parameters Vector of changed parameters
+     * @return SetParametersResult Result of parameter update
+     */
     rcl_interfaces::msg::SetParametersResult parameters_callback(
         const std::vector<rclcpp::Parameter>& parameters);
     
-    // TF2 broadcasting method
+    /**
+     * @brief Broadcasts static transform between world and talk frames
+     */
     void broadcast_static_transform();
 
-    // Member variables
-    rclcpp::TimerBase::SharedPtr timer_;
-    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
-    rclcpp::Service<example_interfaces::srv::SetBool>::SharedPtr service_;
-    rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_callback_handle_;
-    
-    // TF2 broadcaster
-    std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
-    
-    size_t count_{0};
-    std::string base_message_{"Hello"};
-    double publish_frequency_{2.0};  // Hz
+    rclcpp::TimerBase::SharedPtr timer_;                 ///< Timer for periodic publishing
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;  ///< Message publisher
+    rclcpp::Service<example_interfaces::srv::SetBool>::SharedPtr service_;  ///< Service to change message
+    rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_callback_handle_;  ///< Parameter callback handle
+    std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;  ///< TF2 broadcaster
+    size_t count_{0};                                    ///< Message counter
+    std::string base_message_{"Hello"};                  ///< Base message string
+    double publish_frequency_{2.0};                      ///< Publishing frequency in Hz
 };
 
 #endif  // BEGINNER_TUTORIALS_SIMPLE_PUBLISHER_HPP_
