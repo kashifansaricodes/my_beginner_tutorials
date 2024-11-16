@@ -10,22 +10,32 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(example_interfaces REQUIRED)  # Added this line
+find_package(example_interfaces REQUIRED)  
+find_package(tf2 REQUIRED)           
+find_package(tf2_ros REQUIRED)       
+find_package(geometry_msgs REQUIRED)
 
 # Include directories
 include_directories(include)
 
 # Create the publisher executable
-add_executable(talker src/simple_publisher.cpp)
-ament_target_dependencies(talker 
+add_executable(talker 
+    src/main.cpp
+    src/simple_publisher.cpp
+)
+ament_target_dependencies(
+  talker 
   rclcpp 
   std_msgs
-  example_interfaces  # Added this line
+  example_interfaces
+  geometry_msgs
+  tf2
+  tf2_ros
 )
 
 # Add explicit linking for example_interfaces
 target_link_libraries(talker
-  ${example_interfaces_LIBRARIES}  # Added this line
+  ${example_interfaces_LIBRARIES}  
 )
 
 add_executable(listener src/simple_subscriber.cpp)
@@ -54,6 +64,9 @@ ament_export_dependencies(
   rclcpp
   std_msgs
   example_interfaces
+  tf2              
+  tf2_ros          
+  geometry_msgs    
 )
 
 if(BUILD_TESTING)

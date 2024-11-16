@@ -19,6 +19,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <string>
+#include <tf2_ros/static_transform_broadcaster.h>
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <tf2/LinearMath/Quaternion.h>
 
 class SimplePublisher : public rclcpp::Node {
  public:
@@ -34,6 +37,9 @@ class SimplePublisher : public rclcpp::Node {
     void update_timer_period();
     rcl_interfaces::msg::SetParametersResult parameters_callback(
         const std::vector<rclcpp::Parameter>& parameters);
+    
+    // TF2 broadcasting method
+    void broadcast_static_transform();
 
     // Member variables
     rclcpp::TimerBase::SharedPtr timer_;
@@ -41,9 +47,12 @@ class SimplePublisher : public rclcpp::Node {
     rclcpp::Service<example_interfaces::srv::SetBool>::SharedPtr service_;
     rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_callback_handle_;
     
+    // TF2 broadcaster
+    std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
+    
+    size_t count_{0};
     std::string base_message_{"Hello"};
     double publish_frequency_{2.0};  // Hz
-    size_t count_{0};
 };
 
 #endif  // BEGINNER_TUTORIALS_SIMPLE_PUBLISHER_HPP_

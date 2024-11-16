@@ -1,34 +1,31 @@
 /**
  * @file simple_publisher.cpp
  * @author Kashif Ansari
- * @brief Implementation of a ROS2 publisher node with parameter and service
- * capabilities
- * @version 0.1
+ * @brief Implementation of a ROS2 publisher node with TF2 broadcasting capabilities
+ * @version 0.2
  * @date 2024-02-08
  */
 
 #include "simple_publisher.hpp"
-
-#include <ctime>
-#include <functional>
-#include <memory>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_ros/static_transform_broadcaster.h>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-/**
- * @brief Construct a new Simple Publisher object
- *
- * @param options Node options for ROS2 configuration
- * @details Initializes the publisher node with configurable frequency,
- *          sets up parameter callback, and creates a service for string
- * modification
- */
 SimplePublisher::SimplePublisher(const rclcpp::NodeOptions& options)
     : Node("simple_publisher", options),
       count_(0),
       base_message_{"Hii"},
       publish_frequency_(2.0) {
+      
+  // Initialize the static transform broadcaster
+  tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
+  
+  // Set up and broadcast the static transform
+  broadcast_static_transform();
+
   // Create a parameter descriptor for frequency
   rcl_interfaces::msg::ParameterDescriptor freq_desc{};
   freq_desc.description = "Publishing frequency in Hz";
@@ -66,100 +63,82 @@ SimplePublisher::SimplePublisher(const rclcpp::NodeOptions& options)
                       "Publisher initialized successfully on /chatter topic");
 }
 
-/**
- * @brief Callback function for the string modification service
- */
-void SimplePublisher::change_string_callback(
-    const std::shared_ptr<example_interfaces::srv::SetBool::Request> request,
-    std::shared_ptr<example_interfaces::srv::SetBool::Response> response) {
-  // Check for null pointers in request/response
-  if (request == nullptr || response == nullptr) {
-    RCLCPP_ERROR(this->get_logger(), "Received null request or response");
-    return;
-  }
+void SimplePublisher::broadcast_static_transform() {
+  geometry_msgs::msg::TransformStamped t;
 
-  // Change the base message based on request data
-  base_message_ = request->data ? "bye" : "Hii";
-  response->success = true;
-  response->message = "Changed base string to '" + base_message_ + "'";
+  // Set header
+  t.header.stamp = this->get_clock()->now();
+  t.header.frame_id = "world";  // parent frame
+  t.child_frame_id = "talk";    // child frame
 
-  // Log the string change
-  RCLCPP_INFO_STREAM(this->get_logger(),
-                     "Base string changed to: " << base_message_);
+  // Set translation (non-zero values)
+  t.transform.translation.x = 1.0;  // 1 meter in x
+  t.transform.translation.y = 0.5;  // 0.5 meters in y
+  t.transform.translation.z = 0.3;  // 0.3 meters in z
+
+  // Set rotation (45 degrees around Z-axis)
+  tf2::Quaternion q;
+  q.setRPY(0.1,  // roll (rotation around X)
+           0.2,  // pitch (rotation around Y)
+           0.785);  // yaw (rotation around Z) - 45 degrees in radians
+
+  // Convert quaternion to transform
+  t.transform.rotation.x = q.x();
+  t.transform.rotation.y = q.y();
+  t.transform.rotation.z = q.z();
+  t.transform.rotation.w = q.w();
+
+  // Send the transform
+  tf_static_broadcaster_->sendTransform(t);
+  
+  RCLCPP_INFO(this->get_logger(), "Published static transform from 'world' to 'talk'");
 }
 
-/**
- * @brief Timer callback function for publishing messages
- */
-void SimplePublisher::timer_callback() {
-  // Create and populate the message
-  auto message = std_msgs::msg::String();
-  message.data = base_message_ + " World! " + std::to_string(count_++);
-
-  // Log and publish the message
-  RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
-  publisher_->publish(message);
-}
-
-/**
- * @brief Updates the timer period based on the publish frequency
- * 
- * @details Calculates and sets a new timer period using the current publish_frequency_
- */
-void SimplePublisher::update_timer_period() {
-    // Calculate the period in milliseconds from the frequency
-    const int period_ms = static_cast<int>(1000.0 / publish_frequency_);
+rcl_interfaces::msg::SetParametersResult SimplePublisher::parameters_callback(
+    const std::vector<rclcpp::Parameter>& parameters) {
+    rcl_interfaces::msg::SetParametersResult result;
+    result.successful = true;
     
-    // Create a new timer with the calculated period
+    for (const auto& param : parameters) {
+        if (param.get_name() == "publish_frequency") {
+            update_timer_period();
+        }
+    }
+    
+    return result;
+}
+
+void SimplePublisher::update_timer_period() {
+    auto period = this->get_parameter("publish_frequency").as_double();
+    timer_->cancel();
     timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(period_ms),
+        std::chrono::duration<double>(1.0 / period),
         std::bind(&SimplePublisher::timer_callback, this));
 }
 
-/**
- * @brief Callback function for parameter updates
- */
-rcl_interfaces::msg::SetParametersResult SimplePublisher::parameters_callback(
-    const std::vector<rclcpp::Parameter>& parameters) {
-  // Initialize the result
-  rcl_interfaces::msg::SetParametersResult result{};
-  result.successful = true;
-
-  // Process each parameter
-  for (const auto& param : parameters) {
-    if (param.get_name() == "publish_frequency") {
-      const double new_freq = param.as_double();
-
-      // Validate and apply the new frequency
-      if (new_freq > 0.0) {
-        publish_frequency_ = new_freq;
-        update_timer_period();
-        RCLCPP_INFO(this->get_logger(), "Updated frequency to: %.2f Hz",
-                    new_freq);
-      } else {
-        // Log warning for invalid frequency
-        result.successful = false;
-        result.reason = "Frequency must be positive";
-        RCLCPP_WARN(this->get_logger(), "Invalid frequency requested: %.2f Hz",
-                    new_freq);
-      }
+void SimplePublisher::change_string_callback(
+    const std::shared_ptr<example_interfaces::srv::SetBool::Request> request,
+    std::shared_ptr<example_interfaces::srv::SetBool::Response> response) {
+    if (request->data) {
+        base_message_ = "Changed Hello";
+        response->success = true;
+        response->message = "Message changed successfully";
+    } else {
+        base_message_ = "Hello";
+        response->success = true;
+        response->message = "Message reset to default";
     }
-  }
-  return result;
 }
 
-/**
- * @brief Main function to initialize and run the publisher node
- */
-int main(int argc, char* argv[]) {
-  // Initialize ROS2
-  rclcpp::init(argc, argv);
-
-  // Create and spin the node
-  auto node = std::make_shared<SimplePublisher>();
-  rclcpp::spin(node);
-
-  // Clean shutdown
-  rclcpp::shutdown();
-  return 0;
+void SimplePublisher::timer_callback() {
+    auto message = std_msgs::msg::String();
+    message.data = base_message_ + " " + std::to_string(count_++);
+    
+    // Log the message being published
+    RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+    
+    // Publish the message
+    publisher_->publish(message);
 }
+
+// ... [rest of the existing methods remain the same] ...
