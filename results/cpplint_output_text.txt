@@ -1,4 +1,0 @@
-kashif@kashifpc:~/SDR/week9/ros_ass2$ cpplint --filter=-build/c++11,+build/c++17,-build/namespaces,-build/include_order src/beginner_tutorials/src/*.cpp
-Done processing src/beginner_tutorials/src/simple_publisher.cpp
-Done processing src/beginner_tutorials/src/simple_subscriber.cpp
-
